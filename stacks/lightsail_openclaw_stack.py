@@ -22,9 +22,6 @@ class OpenClawConfig:
     bundle_id: str
     availability_zone: str
     key_pair_name: str
-    openclaw_image: str
-    openclaw_container_name: str
-    openclaw_container_port: int
     ssh_cidr: str
     snapshot_time_of_day_utc: str
     tags: dict[str, str]
@@ -32,26 +29,24 @@ class OpenClawConfig:
     @classmethod
     def from_dict(cls, raw: dict) -> "OpenClawConfig":
         region = raw["region"]
+
         return cls(
             stack_name=raw.get("stack_name", "OpenClawLightsailStack"),
             region=region,
             account=raw["account"],
-            instance_name=raw.get("instance_name", "openclaw-prod"),
-            static_ip_name=raw.get("static_ip_name", "openclaw-prod-ip"),
-            blueprint_id=raw.get("blueprint_id", "ubuntu_22_04"),
-            bundle_id=raw.get("bundle_id", "micro_3_0"),
+            instance_name=raw.get("instance_name", "openclaw-dev"),
+            static_ip_name=raw.get("static_ip_name", "openclaw-dev-ip"),
+            blueprint_id=raw.get("blueprint_id", "openclaw_ls_1_0"),
+            bundle_id=raw.get("bundle_id", "medium_3_0"),
             availability_zone=raw.get("availability_zone", f"{region}a"),
             key_pair_name=raw["key_pair_name"],
-            openclaw_image=raw.get("openclaw_image", "ghcr.io/openclaw/openclaw:latest"),
-            openclaw_container_name=raw.get("openclaw_container_name", "openclaw"),
-            openclaw_container_port=int(raw.get("openclaw_container_port", 18789)),
             ssh_cidr=raw.get("ssh_cidr", "0.0.0.0/0"),
             snapshot_time_of_day_utc=raw.get("snapshot_time_of_day_utc", "03:00"),
             tags=raw.get(
                 "tags",
                 {
                     "project": "openclaw",
-                    "env": "prod",
+                    "env": "dev",
                     "managed-by": "cdk",
                 },
             ),
@@ -63,8 +58,6 @@ class LightsailOpenClawStack(Stack):
         super().__init__(scope, construct_id, **kwargs)
 
         tags = [CfnTag(key=k, value=v) for k, v in config.tags.items()]
-
-        user_data = self._build_user_data(config)
 
         instance = CfnInstance(
             self,
@@ -96,7 +89,6 @@ class LightsailOpenClawStack(Stack):
                     ),
                 ]
             ),
-            user_data=user_data,
             add_ons=[
                 CfnInstance.AddOnProperty(
                     add_on_type="AutoSnapshot",
@@ -157,28 +149,3 @@ class LightsailOpenClawStack(Stack):
         CfnOutput(self, "InstanceName", value=instance.instance_name)
         CfnOutput(self, "StaticIpName", value=static_ip.static_ip_name)
         CfnOutput(self, "PublicIp", value=static_ip.attr_ip_address)
-
-    def _build_user_data(self, config: OpenClawConfig) -> str:
-        return f"""#!/bin/bash
-set -eux
-
-export DEBIAN_FRONTEND=noninteractive
-
-apt-get update -y
-apt-get install -y docker.io ca-certificates curl
-
-systemctl enable docker
-systemctl start docker
-
-docker pull {config.openclaw_image}
-
-if docker ps -a --format '{{{{.Names}}}}' | grep -q '^{config.openclaw_container_name}$'; then
-  docker rm -f {config.openclaw_container_name}
-fi
-
-docker run -d \
-  --name {config.openclaw_container_name} \
-  --restart unless-stopped \
-  -p 80:{config.openclaw_container_port} \
-  {config.openclaw_image}
-"""

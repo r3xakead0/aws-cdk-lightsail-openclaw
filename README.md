@@ -1,6 +1,8 @@
 # AWS CDK Lightsail OpenClaw (Python + uv)
 
-Proyecto base para aprovisionar OpenClaw en una instancia AWS Lightsail usando AWS CDK con Python y uv.
+Proyecto base para aprovisionar OpenClaw en AWS Lightsail usando AWS CDK con Python y uv.
+
+El stack usa el blueprint administrado de OpenClaw en Lightsail (recomendado por AWS).
 
 ## Requisitos
 
@@ -14,7 +16,7 @@ Proyecto base para aprovisionar OpenClaw en una instancia AWS Lightsail usando A
 
 - `app.py`: entrypoint CDK
 - `stacks/lightsail_openclaw_stack.py`: stack principal
-- `config/prod.json`: parametros de infraestructura
+- `config/dev.json`: parametros de infraestructura
 - `scripts/*.ps1`: comandos de sintesis/despliegue
 
 ## Configuracion inicial
@@ -26,13 +28,22 @@ aws configure
 aws sts get-caller-identity
 ```
 
-2. Edita `config/prod.json` con valores reales:
+2. Edita `config/dev.json` con valores reales:
 
 - `account`
 - `region`
 - `availability_zone`
 - `key_pair_name`
 - `ssh_cidr` (recomendado restringirlo, no usar `0.0.0.0/0` en produccion)
+
+- `blueprint_id` recomendado: `openclaw_ls_1_0`
+- `bundle_id` recomendado por AWS: `medium_3_0` (4 GB)
+
+Puedes listar blueprints disponibles en tu region con:
+
+```powershell
+aws lightsail get-blueprints --query "blueprints[?contains(name, 'OpenClaw') || contains(blueprintId, 'openclaw')].[name,blueprintId,isActive,version]" --output table
+```
 
 3. Instala dependencias Python:
 
@@ -74,17 +85,13 @@ Eliminar stack:
 
 ## Que aprovisiona este stack
 
-- Instancia Lightsail Linux (Ubuntu 22.04 por defecto)
+- Instancia Lightsail OpenClaw (blueprint administrado por defecto)
 - Apertura de puertos publicos 22/80/443
 - Static IP para endpoint estable
 - Auto snapshots diarios
-- User data para:
-  - instalar Docker
-  - descargar imagen de OpenClaw
-  - iniciar contenedor `openclaw` en puerto 80 del host
 
 ## Notas operativas
 
-- El contenedor usa `ghcr.io/opengovern/openclaw:latest` por defecto.
-- Si necesitas una version fija, cambia `openclaw_image` en `config/prod.json`.
-- Para TLS con dominio, agrega reverse proxy (Nginx/Caddy) en `user_data` o mediante configuracion posterior.
+- El acceso inicial se completa con pairing desde la consola de Lightsail (Getting started + SSH web).
+- La habilitacion de Bedrock se realiza con el script de la guia oficial en CloudShell.
+- Al adjuntar o cambiar Static IP, es normal tener que re-parear navegadores/dispositivos.

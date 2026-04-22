@@ -1,5 +1,5 @@
 param(
-  [string]$ConfigPath = "config/prod.json"
+  [string]$ConfigPath = "config/dev.json"
 )
 
 $env:OPENCLAW_CONFIG_PATH = $ConfigPath

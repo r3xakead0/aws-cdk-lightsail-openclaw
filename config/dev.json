@@ -1,0 +1,19 @@
+{
+  "stack_name": "OpenClawLightsailStack",
+  "account": "142728997126",
+  "region": "us-east-1",
+  "instance_name": "openclaw-dev-v1",
+  "static_ip_name": "openclaw-dev-ip",
+  "blueprint_id": "openclaw_ls_1_0",
+  "bundle_id": "medium_3_0",
+  "availability_zone": "us-east-1a",
+  "key_pair_name": "openclaw-dev-key",
+  "ssh_cidr": "0.0.0.0/0",
+  "snapshot_time_of_day_utc": "03:00",
+  "tags": {
+    "project": "openclaw",
+    "env": "dev",
+    "owner": "r3xakead0",
+    "managed-by": "cdk"
+  }
+}
