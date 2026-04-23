@@ -16,7 +16,7 @@ El stack usa el blueprint administrado de OpenClaw en Lightsail (recomendado por
 
 - `app.py`: entrypoint CDK
 - `stacks/lightsail_openclaw_stack.py`: stack principal
-- `config/dev.json`: parametros de infraestructura
+- `config/dev.json` y `config/prod.json`: parametros de infraestructura por ambiente
 - `scripts/windows/dev/*.ps1` y `scripts/windows/prod/*.ps1`: wrappers por ambiente para Windows PowerShell
 - `scripts/linux-mac/dev/*` y `scripts/linux-mac/prod/*`: wrappers por ambiente para Linux/macOS
 
@@ -29,7 +29,7 @@ aws configure
 aws sts get-caller-identity
 ```
 
-2. Edita `config/dev.json` con valores reales:
+2. Edita `config/dev.json` y `config/prod.json` con valores reales segun el ambiente:
 
 - `account`
 - `region`
@@ -75,6 +75,27 @@ Linux/macOS (dev/prod):
 ./scripts/linux-mac/prod/bootstrap <ACCOUNT_ID> <REGION>
 ```
 
+6. Configura `OPENCLAW_CONFIG_PATH` si quieres fijar el ambiente por defecto:
+
+```bash
+cp .env.example .env
+# Ejemplo para prod
+# OPENCLAW_CONFIG_PATH=config/prod.json
+```
+
+`app.py` carga `.env` automaticamente. Si ejecutas los wrappers (`scripts/.../dev/*` o `scripts/.../prod/*`), ellos sobreescriben `OPENCLAW_CONFIG_PATH` segun el ambiente.
+
+7. Preflight recomendado antes de `deploy`:
+
+```bash
+# Verifica identidad/cuenta actual
+aws sts get-caller-identity
+
+# Verifica key pair en Lightsail (no EC2)
+aws lightsail get-key-pairs --region us-east-1 --query "keyPairs[?name=='openclaw-dev-key'].name" --output table
+aws lightsail get-key-pairs --region us-east-2 --query "keyPairs[?name=='openclaw-prod-key'].name" --output table
+```
+
 ## Generar e importar clave SSH (macOS/Windows)
 
 Este proyecto usa `key_pair_name` para asociar una clave SSH a la instancia Lightsail.
@@ -83,20 +104,29 @@ La clave privada se guarda en tu maquina local y no se sube al repositorio.
 Notas importantes:
 
 - Para `aws lightsail import-key-pair`, usa clave publica tipo `ssh-rsa`.
-- Si `key_pair_name` ya existe, elige otro nombre y actualizalo en `config/dev.json`.
+- Si `key_pair_name` ya existe, elige otro nombre y actualizalo en `config/dev.json` o `config/prod.json`.
 
 ### macOS
 
 1. Genera la clave RSA local:
 
+Dev:
 ```bash
 ssh-keygen -t rsa -b 4096 -m PEM -f ~/.ssh/openclaw-dev-key -C "openclaw-lightsail"
 chmod 600 ~/.ssh/openclaw-dev-key
 chmod 644 ~/.ssh/openclaw-dev-key.pub
 ```
 
+Prod:
+```bash
+ssh-keygen -t rsa -b 4096 -m PEM -f ~/.ssh/openclaw-prod-key -C "openclaw-lightsail"
+chmod 600 ~/.ssh/openclaw-prod-key
+chmod 644 ~/.ssh/openclaw-prod-key.pub
+```
+
 2. Importa la clave publica a Lightsail:
 
+Dev:
 ```bash
 aws lightsail import-key-pair \
   --key-pair-name openclaw-dev-key \
@@ -104,22 +134,43 @@ aws lightsail import-key-pair \
   --region us-east-1
 ```
 
+Prod:
+```bash
+aws lightsail import-key-pair \
+  --key-pair-name openclaw-prod-key \
+  --public-key-base64 "$(cat ~/.ssh/openclaw-prod-key.pub)" \
+  --region us-east-2
+```
+
 3. Verifica que exista:
 
+Dev:
 ```bash
 aws lightsail get-key-pairs --region us-east-1 --query "keyPairs[?name=='openclaw-dev-key'].name" --output table
+```
+
+Prod:
+```bash
+aws lightsail get-key-pairs --region us-east-2 --query "keyPairs[?name=='openclaw-prod-key'].name" --output table
 ```
 
 ### Windows PowerShell
 
 1. Genera la clave RSA local:
 
+Dev:
 ```powershell
 ssh-keygen -t rsa -b 4096 -m PEM -f "$HOME\.ssh\openclaw-dev-key" -C "openclaw-lightsail"
 ```
 
+Prod:
+```powershell
+ssh-keygen -t rsa -b 4096 -m PEM -f "$HOME\.ssh\openclaw-prod-key" -C "openclaw-lightsail"
+```
+
 2. Importa la clave publica a Lightsail:
 
+Dev:
 ```powershell
 $pub = Get-Content "$HOME\.ssh\openclaw-dev-key.pub" -Raw
 aws lightsail import-key-pair `
@@ -128,31 +179,52 @@ aws lightsail import-key-pair `
   --region us-east-1
 ```
 
+Prod:
+```powershell
+$pub = Get-Content "$HOME\.ssh\openclaw-prod-key.pub" -Raw
+aws lightsail import-key-pair `
+  --key-pair-name openclaw-prod-key `
+  --public-key-base64 $pub `
+  --region us-east-2
+```
+
 3. Verifica que exista:
 
+Dev:
 ```powershell
 aws lightsail get-key-pairs --region us-east-1 --query "keyPairs[?name=='openclaw-dev-key'].name" --output table
 ```
 
+Prod:
+```powershell
+aws lightsail get-key-pairs --region us-east-2 --query "keyPairs[?name=='openclaw-prod-key'].name" --output table
+```
+
 ### Conectar por SSH despues del deploy
 
-1. Asegura que `config/dev.json` tenga `key_pair_name` con el mismo nombre importado.
+1. Asegura que `config/dev.json` o `config/prod.json` tenga `key_pair_name` con el mismo nombre importado en la region correcta.
 2. Despliega infraestructura.
 3. Conecta por SSH usando la clave privada local.
 
 Ejemplo (Linux/macOS):
 
 ```bash
-ssh -i ~/.ssh/openclaw-dev-key ubuntu@<PUBLIC_IP>
+ssh -i ~/.ssh/<key_pair_name> ubuntu@<PUBLIC_IP>
 ```
 
 Ejemplo (Windows PowerShell):
 
 ```powershell
-ssh -i "$HOME\.ssh\openclaw-dev-key" ubuntu@<PUBLIC_IP>
+ssh -i "$HOME\.ssh\<key_pair_name>" ubuntu@<PUBLIC_IP>
 ```
 
-No subas archivos de clave privada (`.pem`, `id_*`, `openclaw-dev-key`) al repositorio.
+No subas archivos de clave privada (`.pem`, `id_*`, `openclaw-dev-key`, `openclaw-prod-key`) al repositorio.
+
+## Troubleshooting rapido
+
+- Si `cdk deploy` falla y el stack queda en `ROLLBACK_COMPLETE`, borra el stack antes de reintentar.
+- Si aparece `The KeyPair does not exist`, crea o importa el key pair en **Lightsail** (no EC2) y en la **misma region** de tu config.
+- Si ves advertencia de Node no soportado por CDK, ejecuta `nvm use` para cambiar a Node 22 LTS (`.nvmrc`).
 
 ## Uso
 
