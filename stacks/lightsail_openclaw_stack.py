@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import ipaddress
+from pathlib import Path
+import re
 
 from aws_cdk import CfnOutput, CfnTag, CustomResource, Duration, Stack
 from aws_cdk import custom_resources as cr
@@ -32,8 +35,7 @@ class OpenClawConfig:
     @classmethod
     def from_dict(cls, raw: dict) -> "OpenClawConfig":
         region = raw["region"]
-
-        return cls(
+        config = cls(
             stack_name=raw.get("stack_name", "OpenClawLightsailStack"),
             region=region,
             account=raw["account"],
@@ -56,6 +58,46 @@ class OpenClawConfig:
                 },
             ),
         )
+        config._validate()
+        return config
+
+    def _validate(self) -> None:
+        if not re.fullmatch(r"\d{12}", self.account):
+            raise ValueError("'account' must be a 12-digit AWS account ID")
+
+        if not re.fullmatch(r"[a-z]{2}-[a-z]+-\d", self.region):
+            raise ValueError(f"'region' has invalid format: {self.region}")
+
+        if not re.fullmatch(rf"{re.escape(self.region)}[a-z]", self.availability_zone):
+            raise ValueError(
+                f"'availability_zone' must belong to region '{self.region}', got '{self.availability_zone}'"
+            )
+
+        if not self.key_pair_name.strip():
+            raise ValueError("'key_pair_name' cannot be empty")
+
+        if not re.fullmatch(r"(?:[01]\d|2[0-3]):[0-5]\d", self.snapshot_time_of_day_utc):
+            raise ValueError(
+                "'snapshot_time_of_day_utc' must use 24h UTC format HH:MM (example: 03:00)"
+            )
+
+        try:
+            ipaddress.ip_network(self.ssh_cidr, strict=False)
+        except ValueError as error:
+            raise ValueError(f"'ssh_cidr' is not a valid CIDR block: {self.ssh_cidr}") from error
+
+        if not self.tags:
+            raise ValueError("'tags' cannot be empty")
+
+        invalid_tag_keys = [key for key in self.tags.keys() if not isinstance(key, str) or not key.strip()]
+        if invalid_tag_keys:
+            raise ValueError("'tags' keys must be non-empty strings")
+
+        invalid_tag_values = [
+            value for value in self.tags.values() if not isinstance(value, str) or not value.strip()
+        ]
+        if invalid_tag_values:
+            raise ValueError("'tags' values must be non-empty strings")
 
 
 class LightsailOpenClawStack(Stack):
@@ -161,131 +203,8 @@ class LightsailOpenClawStack(Stack):
             runtime=_lambda.Runtime.PYTHON_3_11,
             handler="index.on_event",
             timeout=Duration.seconds(120),
-            code=_lambda.Code.from_inline(
-                """
-import json
-import boto3
-from botocore.exceptions import ClientError
-
-
-def _trust_policy(lightsail_account: str, instance_id: str) -> dict:
-    return {
-        "Version": "2012-10-17",
-        "Statement": [
-            {
-                "Effect": "Allow",
-                "Principal": {
-                    "AWS": f"arn:aws:sts::{lightsail_account}:assumed-role/AmazonLightsailInstance/{instance_id}",
-                },
-                "Action": "sts:AssumeRole",
-            }
-        ],
-    }
-
-
-def _permissions_policy() -> dict:
-    return {
-        "Version": "2012-10-17",
-        "Statement": [
-            {
-                "Sid": "BedrockInvoke",
-                "Effect": "Allow",
-                "Action": [
-                    "bedrock:ListFoundationModels",
-                    "bedrock:InvokeModel",
-                    "bedrock:InvokeModelWithResponseStream",
-                ],
-                "Resource": "*",
-            },
-            {
-                "Sid": "MarketplaceModelAccess",
-                "Effect": "Allow",
-                "Action": [
-                    "aws-marketplace:Subscribe",
-                    "aws-marketplace:Unsubscribe",
-                    "aws-marketplace:ViewSubscriptions",
-                ],
-                "Resource": "*",
-            },
-        ],
-    }
-
-
-def _upsert_role(instance_name: str, region: str) -> dict:
-    lightsail = boto3.client("lightsail", region_name=region)
-    iam = boto3.client("iam")
-    sts = boto3.client("sts")
-
-    support_code = lightsail.get_instance(instanceName=instance_name)["instance"]["supportCode"]
-    if not support_code or "/" not in support_code:
-        raise ValueError(f"Invalid support code for instance '{instance_name}': {support_code}")
-
-    lightsail_account, instance_id = support_code.split("/", 1)
-    role_name = f"LightsailRoleFor-{instance_id}"
-    trust_policy = _trust_policy(lightsail_account, instance_id)
-
-    try:
-        iam.get_role(RoleName=role_name)
-        iam.update_assume_role_policy(RoleName=role_name, PolicyDocument=json.dumps(trust_policy))
-    except ClientError as error:
-        if error.response["Error"].get("Code") != "NoSuchEntity":
-            raise
-        iam.create_role(
-            RoleName=role_name,
-            AssumeRolePolicyDocument=json.dumps(trust_policy),
-            Description=f"Allows OpenClaw on Lightsail instance {instance_name} to access Bedrock",
-        )
-
-    iam.put_role_policy(
-        RoleName=role_name,
-        PolicyName="OpenClawBedrockAccess",
-        PolicyDocument=json.dumps(_permissions_policy()),
-    )
-
-    account_id = sts.get_caller_identity()["Account"]
-    role_arn = f"arn:aws:iam::{account_id}:role/{role_name}"
-    return {"RoleName": role_name, "RoleArn": role_arn, "InstanceId": instance_id}
-
-
-def _delete_role(role_name: str) -> None:
-    if not role_name:
-        return
-
-    iam = boto3.client("iam")
-    try:
-        iam.delete_role_policy(RoleName=role_name, PolicyName="OpenClawBedrockAccess")
-    except ClientError as error:
-        if error.response["Error"].get("Code") != "NoSuchEntity":
-            raise
-
-    try:
-        iam.delete_role(RoleName=role_name)
-    except ClientError as error:
-        if error.response["Error"].get("Code") != "NoSuchEntity":
-            raise
-
-
-def on_event(event, _context):
-    request_type = event["RequestType"]
-    props = event.get("ResourceProperties", {})
-
-    if request_type in ("Create", "Update"):
-        result = _upsert_role(
-            instance_name=props["InstanceName"],
-            region=props["Region"],
-        )
-        return {
-            "PhysicalResourceId": result["RoleName"],
-            "Data": result,
-        }
-
-    _delete_role(event.get("PhysicalResourceId", ""))
-
-    return {
-        "PhysicalResourceId": event.get("PhysicalResourceId", "deleted"),
-        "Data": {},
-    }
-                """.strip()
+            code=_lambda.Code.from_asset(
+                str(Path(__file__).resolve().parents[1] / "lambda" / "bedrock_role_setup")
             ),
         )
         bedrock_role_handler.add_to_role_policy(

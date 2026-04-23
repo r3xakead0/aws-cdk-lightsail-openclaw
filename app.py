@@ -16,8 +16,20 @@ load_dotenv(override=False)
 def load_config() -> dict:
     config_path = os.getenv("OPENCLAW_CONFIG_PATH", "config/dev.json")
     resolved = Path(config_path).resolve()
+
+    if not resolved.exists():
+        raise FileNotFoundError(
+            f"Config file not found: {resolved}. Set OPENCLAW_CONFIG_PATH to a valid JSON file."
+        )
+
+    if not resolved.is_file():
+        raise ValueError(f"Config path is not a file: {resolved}")
+
     with resolved.open("r", encoding="utf-8") as file:
-        return json.load(file)
+        try:
+            return json.load(file)
+        except json.JSONDecodeError as error:
+            raise ValueError(f"Config file is not valid JSON: {resolved}") from error
 
 
 app = cdk.App()

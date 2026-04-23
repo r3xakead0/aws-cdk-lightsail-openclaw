@@ -81,3 +81,36 @@ def test_from_dict_raises_for_missing_required_fields() -> None:
     del raw["key_pair_name"]
     with pytest.raises(KeyError, match="'key_pair_name'"):
         OpenClawConfig.from_dict(raw)
+
+
+def test_from_dict_raises_for_invalid_region_az_pair() -> None:
+    raw = _base_config()
+    raw["region"] = "us-east-2"
+    raw["availability_zone"] = "us-east-1a"
+
+    with pytest.raises(ValueError, match="availability_zone"):
+        OpenClawConfig.from_dict(raw)
+
+
+def test_from_dict_raises_for_invalid_snapshot_time() -> None:
+    raw = _base_config()
+    raw["snapshot_time_of_day_utc"] = "3am"
+
+    with pytest.raises(ValueError, match="snapshot_time_of_day_utc"):
+        OpenClawConfig.from_dict(raw)
+
+
+def test_from_dict_raises_for_invalid_ssh_cidr() -> None:
+    raw = _base_config()
+    raw["ssh_cidr"] = "10.0.0.500/33"
+
+    with pytest.raises(ValueError, match="ssh_cidr"):
+        OpenClawConfig.from_dict(raw)
+
+
+def test_from_dict_raises_for_empty_tags() -> None:
+    raw = _base_config()
+    raw["tags"] = {}
+
+    with pytest.raises(ValueError, match="tags"):
+        OpenClawConfig.from_dict(raw)

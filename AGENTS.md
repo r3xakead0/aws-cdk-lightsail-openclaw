@@ -11,6 +11,7 @@
 - Recommended bundle is `medium_3_0`.
 - Stack uses a custom resource to `attachStaticIp`/`detachStaticIp`; keep it when editing stack lifecycle behavior.
 - Stack also bootstraps a Bedrock IAM role for the Lightsail instance through a custom resource (replaces the manual CloudShell script step).
+- Bedrock custom resource handler source is `lambda/bedrock_role_setup/index.py`.
 
 ## Commands
 
@@ -86,4 +87,5 @@ uv run cdk destroy --force
 
 ## Fast verification
 - Syntax: `python -m compileall app.py stacks`
+- Unit tests: `uv run pytest`
 - Infra sanity: `uv run cdk synth`
