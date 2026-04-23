@@ -65,6 +65,85 @@ Linux/macOS:
 ./scripts/linux-mac/bootstrap <ACCOUNT_ID> <REGION>
 ```
 
+## Generar e importar clave SSH (macOS/Windows)
+
+Este proyecto usa `key_pair_name` para asociar una clave SSH a la instancia Lightsail.
+La clave privada se guarda en tu maquina local y no se sube al repositorio.
+
+Notas importantes:
+
+- Para `aws lightsail import-key-pair`, usa clave publica tipo `ssh-rsa`.
+- Si `key_pair_name` ya existe, elige otro nombre y actualizalo en `config/dev.json`.
+
+### macOS
+
+1. Genera la clave RSA local:
+
+```bash
+ssh-keygen -t rsa -b 4096 -m PEM -f ~/.ssh/openclaw-dev-key -C "openclaw-lightsail"
+chmod 600 ~/.ssh/openclaw-dev-key
+chmod 644 ~/.ssh/openclaw-dev-key.pub
+```
+
+2. Importa la clave publica a Lightsail:
+
+```bash
+aws lightsail import-key-pair \
+  --key-pair-name openclaw-dev-key \
+  --public-key-base64 "$(cat ~/.ssh/openclaw-dev-key.pub)" \
+  --region us-east-1
+```
+
+3. Verifica que exista:
+
+```bash
+aws lightsail get-key-pairs --region us-east-1 --query "keyPairs[?name=='openclaw-dev-key'].name" --output table
+```
+
+### Windows PowerShell
+
+1. Genera la clave RSA local:
+
+```powershell
+ssh-keygen -t rsa -b 4096 -m PEM -f "$HOME\.ssh\openclaw-dev-key" -C "openclaw-lightsail"
+```
+
+2. Importa la clave publica a Lightsail:
+
+```powershell
+$pub = Get-Content "$HOME\.ssh\openclaw-dev-key.pub" -Raw
+aws lightsail import-key-pair `
+  --key-pair-name openclaw-dev-key `
+  --public-key-base64 $pub `
+  --region us-east-1
+```
+
+3. Verifica que exista:
+
+```powershell
+aws lightsail get-key-pairs --region us-east-1 --query "keyPairs[?name=='openclaw-dev-key'].name" --output table
+```
+
+### Conectar por SSH despues del deploy
+
+1. Asegura que `config/dev.json` tenga `key_pair_name` con el mismo nombre importado.
+2. Despliega infraestructura.
+3. Conecta por SSH usando la clave privada local.
+
+Ejemplo (Linux/macOS):
+
+```bash
+ssh -i ~/.ssh/openclaw-dev-key ubuntu@<PUBLIC_IP>
+```
+
+Ejemplo (Windows PowerShell):
+
+```powershell
+ssh -i "$HOME\.ssh\openclaw-dev-key" ubuntu@<PUBLIC_IP>
+```
+
+No subas archivos de clave privada (`.pem`, `id_*`, `openclaw-dev-key`) al repositorio.
+
 ## Uso
 
 ### Windows PowerShell
