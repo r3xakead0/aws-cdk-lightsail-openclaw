@@ -3,4 +3,4 @@ param(
 )
 
 $env:OPENCLAW_CONFIG_PATH = $ConfigPath
-python -m uv run cdk.cmd diff
+uv run cdk synth

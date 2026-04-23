@@ -3,4 +3,4 @@ param(
 )
 
 $env:OPENCLAW_CONFIG_PATH = $ConfigPath
-python -m uv run cdk.cmd destroy --force
+uv run cdk destroy --force

@@ -17,13 +17,14 @@ El stack usa el blueprint administrado de OpenClaw en Lightsail (recomendado por
 - `app.py`: entrypoint CDK
 - `stacks/lightsail_openclaw_stack.py`: stack principal
 - `config/dev.json`: parametros de infraestructura
-- `scripts/*.ps1`: comandos de sintesis/despliegue
+- `scripts/windows/*.ps1`: wrappers para Windows PowerShell
+- `scripts/linux-mac/*`: wrappers para Linux/macOS
 
 ## Configuracion inicial
 
 1. Configura credenciales de AWS:
 
-```powershell
+```bash
 aws configure
 aws sts get-caller-identity
 ```
@@ -35,52 +36,97 @@ aws sts get-caller-identity
 - `availability_zone`
 - `key_pair_name`
 - `ssh_cidr` (recomendado restringirlo, no usar `0.0.0.0/0` en produccion)
-
 - `blueprint_id` recomendado: `openclaw_ls_1_0`
 - `bundle_id` recomendado por AWS: `medium_3_0` (4 GB)
 
 Puedes listar blueprints disponibles en tu region con:
 
-```powershell
+```bash
 aws lightsail get-blueprints --query "blueprints[?contains(name, 'OpenClaw') || contains(blueprintId, 'openclaw')].[name,blueprintId,isActive,version]" --output table
 ```
 
 3. Instala dependencias Python:
 
-```powershell
+```bash
 uv sync
 ```
 
 4. Bootstrapping de CDK (una vez por cuenta/region):
 
+Windows PowerShell:
+
 ```powershell
-./scripts/bootstrap.ps1 -AccountId <ACCOUNT_ID> -Region <REGION>
+.\scripts\windows\bootstrap.ps1 -AccountId <ACCOUNT_ID> -Region <REGION>
+```
+
+Linux/macOS:
+
+```bash
+./scripts/linux-mac/bootstrap <ACCOUNT_ID> <REGION>
 ```
 
 ## Uso
 
+### Windows PowerShell
+
 Sintetizar:
 
 ```powershell
-./scripts/synth.ps1
+.\scripts\windows\synth.ps1
 ```
 
 Ver cambios:
 
 ```powershell
-./scripts/diff.ps1
+.\scripts\windows\diff.ps1
 ```
 
 Desplegar:
 
 ```powershell
-./scripts/deploy.ps1
+.\scripts\windows\deploy.ps1
 ```
 
 Eliminar stack:
 
 ```powershell
-./scripts/destroy.ps1
+.\scripts\windows\destroy.ps1
+```
+
+### Linux/macOS
+
+Sintetizar:
+
+```bash
+./scripts/linux-mac/synth
+```
+
+Ver cambios:
+
+```bash
+./scripts/linux-mac/diff
+```
+
+Desplegar:
+
+```bash
+./scripts/linux-mac/deploy
+```
+
+Eliminar stack:
+
+```bash
+./scripts/linux-mac/destroy
+```
+
+### Comandos directos (cualquier plataforma)
+
+```bash
+uv run cdk bootstrap aws://<ACCOUNT>/<REGION>
+uv run cdk synth
+uv run cdk diff
+uv run cdk deploy --require-approval never
+uv run cdk destroy --force
 ```
 
 ## Que aprovisiona este stack

@@ -1,0 +1,5 @@
+#!/bin/bash
+
+ConfigPath="${OPENCLAW_CONFIG_PATH:-config/dev.json}"
+export OPENCLAW_CONFIG_PATH="$ConfigPath"
+uv run cdk synth

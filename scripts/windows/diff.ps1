@@ -3,4 +3,4 @@ param(
 )
 
 $env:OPENCLAW_CONFIG_PATH = $ConfigPath
-python -m uv run cdk.cmd deploy --require-approval never
+uv run cdk diff
