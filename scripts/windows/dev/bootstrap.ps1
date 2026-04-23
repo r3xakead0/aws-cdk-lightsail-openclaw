@@ -4,7 +4,7 @@ param(
 )
 
 if (-not $AccountId -or -not $Region) {
-  throw "Uso: ./scripts/windows/bootstrap.ps1 -AccountId <ACCOUNT_ID> -Region <REGION>"
+  throw "Uso: ./scripts/windows/dev/bootstrap.ps1 -AccountId <ACCOUNT_ID> -Region <REGION>"
 }
 
 uv run cdk bootstrap "aws://$AccountId/$Region"

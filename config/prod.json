@@ -1,0 +1,20 @@
+{
+  "stack_name": "OpenClawLightsailStackProd",
+  "account": "142728997126",
+  "region": "us-east-2",
+  "instance_name": "openclaw-prod-v1",
+  "static_ip_name": "openclaw-prod-ip",
+  "blueprint_id": "openclaw_ls_1_0",
+  "bundle_id": "medium_3_0",
+  "availability_zone": "us-east-2a",
+  "key_pair_name": "openclaw-prod-key",
+  "ssh_cidr": "0.0.0.0/0",
+  "enable_auto_snapshot": true,
+  "snapshot_time_of_day_utc": "03:00",
+  "tags": {
+    "project": "openclaw",
+    "env": "prod",
+    "owner": "r3xakead0",
+    "managed-by": "cdk"
+  }
+}

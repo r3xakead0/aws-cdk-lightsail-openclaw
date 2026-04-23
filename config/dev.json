@@ -1,5 +1,5 @@
 {
-  "stack_name": "OpenClawLightsailStack",
+  "stack_name": "OpenClawLightsailStackDev",
   "account": "142728997126",
   "region": "us-east-1",
   "instance_name": "openclaw-dev-v1",
@@ -9,6 +9,7 @@
   "availability_zone": "us-east-1a",
   "key_pair_name": "openclaw-dev-key",
   "ssh_cidr": "0.0.0.0/0",
+  "enable_auto_snapshot": false,
   "snapshot_time_of_day_utc": "03:00",
   "tags": {
     "project": "openclaw",

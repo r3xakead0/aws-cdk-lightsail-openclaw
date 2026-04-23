@@ -1,0 +1,11 @@
+#!/bin/bash
+
+AccountId="$1"
+Region="$2"
+
+if [ -z "$AccountId" ] || [ -z "$Region" ]; then
+  echo "Usage: ./scripts/linux-mac/prod/bootstrap <ACCOUNT_ID> <REGION>"
+  exit 1
+fi
+
+uv run cdk bootstrap "aws://$AccountId/$Region"

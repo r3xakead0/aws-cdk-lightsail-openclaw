@@ -17,8 +17,8 @@ El stack usa el blueprint administrado de OpenClaw en Lightsail (recomendado por
 - `app.py`: entrypoint CDK
 - `stacks/lightsail_openclaw_stack.py`: stack principal
 - `config/dev.json`: parametros de infraestructura
-- `scripts/windows/*.ps1`: wrappers para Windows PowerShell
-- `scripts/linux-mac/*`: wrappers para Linux/macOS
+- `scripts/windows/dev/*.ps1` y `scripts/windows/prod/*.ps1`: wrappers por ambiente para Windows PowerShell
+- `scripts/linux-mac/dev/*` y `scripts/linux-mac/prod/*`: wrappers por ambiente para Linux/macOS
 
 ## Configuracion inicial
 
@@ -36,6 +36,8 @@ aws sts get-caller-identity
 - `availability_zone`
 - `key_pair_name`
 - `ssh_cidr` (recomendado restringirlo, no usar `0.0.0.0/0` en produccion)
+- `enable_auto_snapshot` (`false` por defecto; habilita snapshots diarios si es `true`)
+- `snapshot_time_of_day_utc` (solo aplica cuando `enable_auto_snapshot=true`)
 - `blueprint_id` recomendado: `openclaw_ls_1_0`
 - `bundle_id` recomendado por AWS: `medium_3_0` (4 GB)
 
@@ -53,16 +55,18 @@ uv sync
 
 4. Bootstrapping de CDK (una vez por cuenta/region):
 
-Windows PowerShell:
+Windows PowerShell (dev/prod):
 
 ```powershell
-.\scripts\windows\bootstrap.ps1 -AccountId <ACCOUNT_ID> -Region <REGION>
+.\scripts\windows\dev\bootstrap.ps1 -AccountId <ACCOUNT_ID> -Region <REGION>
+.\scripts\windows\prod\bootstrap.ps1 -AccountId <ACCOUNT_ID> -Region <REGION>
 ```
 
-Linux/macOS:
+Linux/macOS (dev/prod):
 
 ```bash
-./scripts/linux-mac/bootstrap <ACCOUNT_ID> <REGION>
+./scripts/linux-mac/dev/bootstrap <ACCOUNT_ID> <REGION>
+./scripts/linux-mac/prod/bootstrap <ACCOUNT_ID> <REGION>
 ```
 
 ## Generar e importar clave SSH (macOS/Windows)
@@ -148,54 +152,42 @@ No subas archivos de clave privada (`.pem`, `id_*`, `openclaw-dev-key`) al repos
 
 ### Windows PowerShell
 
-Sintetizar:
+Dev:
 
 ```powershell
-.\scripts\windows\synth.ps1
+.\scripts\windows\dev\synth.ps1
+.\scripts\windows\dev\diff.ps1
+.\scripts\windows\dev\deploy.ps1
+.\scripts\windows\dev\destroy.ps1
 ```
 
-Ver cambios:
+Prod:
 
 ```powershell
-.\scripts\windows\diff.ps1
-```
-
-Desplegar:
-
-```powershell
-.\scripts\windows\deploy.ps1
-```
-
-Eliminar stack:
-
-```powershell
-.\scripts\windows\destroy.ps1
+.\scripts\windows\prod\synth.ps1
+.\scripts\windows\prod\diff.ps1
+.\scripts\windows\prod\deploy.ps1
+.\scripts\windows\prod\destroy.ps1
 ```
 
 ### Linux/macOS
 
-Sintetizar:
+Dev:
 
 ```bash
-./scripts/linux-mac/synth
+./scripts/linux-mac/dev/synth
+./scripts/linux-mac/dev/diff
+./scripts/linux-mac/dev/deploy
+./scripts/linux-mac/dev/destroy
 ```
 
-Ver cambios:
+Prod:
 
 ```bash
-./scripts/linux-mac/diff
-```
-
-Desplegar:
-
-```bash
-./scripts/linux-mac/deploy
-```
-
-Eliminar stack:
-
-```bash
-./scripts/linux-mac/destroy
+./scripts/linux-mac/prod/synth
+./scripts/linux-mac/prod/diff
+./scripts/linux-mac/prod/deploy
+./scripts/linux-mac/prod/destroy
 ```
 
 ### Comandos directos (cualquier plataforma)
@@ -213,10 +205,11 @@ uv run cdk destroy --force
 - Instancia Lightsail OpenClaw (blueprint administrado por defecto)
 - Apertura de puertos publicos 22/80/443
 - Static IP para endpoint estable
-- Auto snapshots diarios
+- Auto snapshots diarios opcionales (`enable_auto_snapshot=true`)
+- Rol IAM para que la instancia OpenClaw invoque Bedrock (sin paso manual en CloudShell)
 
 ## Notas operativas
 
 - El acceso inicial se completa con pairing desde la consola de Lightsail (Getting started + SSH web).
-- La habilitacion de Bedrock se realiza con el script de la guia oficial en CloudShell.
+- La habilitacion del rol Bedrock se ejecuta automaticamente durante `cdk deploy` y se elimina durante `cdk destroy`.
 - Al adjuntar o cambiar Static IP, es normal tener que re-parear navegadores/dispositivos.

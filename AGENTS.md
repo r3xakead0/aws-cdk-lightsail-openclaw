@@ -10,6 +10,7 @@
 - Use Lightsail blueprint ID `openclaw_ls_1_0` (not `openclaw`, which fails in `us-east-1`).
 - Recommended bundle is `medium_3_0`.
 - Stack uses a custom resource to `attachStaticIp`/`detachStaticIp`; keep it when editing stack lifecycle behavior.
+- Stack also bootstraps a Bedrock IAM role for the Lightsail instance through a custom resource (replaces the manual CloudShell script step).
 
 ## Commands
 
@@ -18,20 +19,25 @@
 # Install deps
 uv sync
 
-# Bootstrap
-.\scripts\windows\bootstrap.ps1 -AccountId <ACCOUNT_ID> -Region <REGION>
+# Bootstrap (dev/prod)
+.\scripts\windows\dev\bootstrap.ps1 -AccountId <ACCOUNT_ID> -Region <REGION>
+.\scripts\windows\prod\bootstrap.ps1 -AccountId <ACCOUNT_ID> -Region <REGION>
 
 # Synthesize
-.\scripts\windows\synth.ps1
+.\scripts\windows\dev\synth.ps1
+.\scripts\windows\prod\synth.ps1
 
 # Diff
-.\scripts\windows\diff.ps1
+.\scripts\windows\dev\diff.ps1
+.\scripts\windows\prod\diff.ps1
 
 # Deploy
-.\scripts\windows\deploy.ps1
+.\scripts\windows\dev\deploy.ps1
+.\scripts\windows\prod\deploy.ps1
 
 # Destroy
-.\scripts\windows\destroy.ps1
+.\scripts\windows\dev\destroy.ps1
+.\scripts\windows\prod\destroy.ps1
 ```
 
 ### Linux / macOS
@@ -39,20 +45,25 @@ uv sync
 # Install deps
 uv sync
 
-# Bootstrap
-./scripts/linux-mac/bootstrap <ACCOUNT_ID> <REGION>
+# Bootstrap (dev/prod)
+./scripts/linux-mac/dev/bootstrap <ACCOUNT_ID> <REGION>
+./scripts/linux-mac/prod/bootstrap <ACCOUNT_ID> <REGION>
 
 # Synthesize
-./scripts/linux-mac/synth
+./scripts/linux-mac/dev/synth
+./scripts/linux-mac/prod/synth
 
 # Diff
-./scripts/linux-mac/diff
+./scripts/linux-mac/dev/diff
+./scripts/linux-mac/prod/diff
 
 # Deploy
-./scripts/linux-mac/deploy
+./scripts/linux-mac/dev/deploy
+./scripts/linux-mac/prod/deploy
 
 # Destroy
-./scripts/linux-mac/destroy
+./scripts/linux-mac/dev/destroy
+./scripts/linux-mac/prod/destroy
 ```
 
 ### Direct commands (any platform)
@@ -68,6 +79,8 @@ uv run cdk destroy --force
 - Keep `config/dev.json` aligned with a real Lightsail key pair name in target account/region.
 - Set `AWS_PROFILE` explicitly before deploy/destroy when using non-default credentials.
 - Changing `instance_name` replaces the Lightsail instance; static IP name remains whatever `static_ip_name` is set to.
+- Auto snapshot add-on is opt-in via `enable_auto_snapshot` (defaults to `false`).
+- Bedrock role setup and cleanup are part of the default stack lifecycle (no config flags).
 - If a create fails and stack is `ROLLBACK_COMPLETE`, delete the stack before redeploy.
 
 ## Fast verification
