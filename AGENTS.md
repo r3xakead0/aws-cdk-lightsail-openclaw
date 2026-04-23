@@ -76,6 +76,7 @@ uv run cdk destroy --force
 ```
 
 ## Config and operational gotchas
+- Use Node.js 22 LTS for CDK CLI compatibility (`nvm use` reads `.nvmrc`).
 - Keep `config/dev.json` aligned with a real Lightsail key pair name in target account/region.
 - Set `AWS_PROFILE` explicitly before deploy/destroy when using non-default credentials.
 - Changing `instance_name` replaces the Lightsail instance; static IP name remains whatever `static_ip_name` is set to.

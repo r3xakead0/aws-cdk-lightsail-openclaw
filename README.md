@@ -8,7 +8,7 @@ El stack usa el blueprint administrado de OpenClaw en Lightsail (recomendado por
 
 - Python 3.11+
 - uv
-- Node.js LTS (requerido por CDK)
+- Node.js 22 LTS (requerido por CDK; version pinneada en `.nvmrc`)
 - AWS CLI v2
 - AWS CDK CLI (`npm install -g aws-cdk`)
 
@@ -53,7 +53,13 @@ aws lightsail get-blueprints --query "blueprints[?contains(name, 'OpenClaw') || 
 uv sync
 ```
 
-4. Bootstrapping de CDK (una vez por cuenta/region):
+4. Alinea la version de Node.js (si usas nvm):
+
+```bash
+nvm use
+```
+
+5. Bootstrapping de CDK (una vez por cuenta/region):
 
 Windows PowerShell (dev/prod):
 

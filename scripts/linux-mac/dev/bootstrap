@@ -1,10 +1,11 @@
 #!/bin/bash
+set -euo pipefail
 
-AccountId="$1"
-Region="$2"
+AccountId="${1:-}"
+Region="${2:-}"
 
 if [ -z "$AccountId" ] || [ -z "$Region" ]; then
-  echo "Usage: ./scripts/linux-mac/dev/bootstrap <ACCOUNT_ID> <REGION>"
+  echo "[dev] Usage: ./scripts/linux-mac/dev/bootstrap <ACCOUNT_ID> <REGION>" >&2
   exit 1
 fi
 

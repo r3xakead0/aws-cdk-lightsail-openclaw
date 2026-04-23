@@ -1,5 +1,11 @@
 #!/bin/bash
+set -euo pipefail
 
 ConfigPath="${OPENCLAW_CONFIG_PATH:-config/prod.json}"
+if [ ! -f "$ConfigPath" ]; then
+  echo "[prod] Config file not found: $ConfigPath" >&2
+  exit 1
+fi
+
 export OPENCLAW_CONFIG_PATH="$ConfigPath"
 uv run cdk destroy --force

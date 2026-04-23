@@ -47,7 +47,7 @@ class OpenClawConfig:
             enable_auto_snapshot=raw.get("enable_auto_snapshot", False),
             snapshot_time_of_day_utc=raw.get("snapshot_time_of_day_utc", "03:00"),
             tags=raw.get(
-                "tags", 
+                "tags",
                 {
                     "project": "openclaw",
                     "env": "dev",

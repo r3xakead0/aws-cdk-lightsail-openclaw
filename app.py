@@ -5,8 +5,12 @@ import os
 from pathlib import Path
 
 import aws_cdk as cdk
+from dotenv import load_dotenv
 
 from stacks.lightsail_openclaw_stack import LightsailOpenClawStack, OpenClawConfig
+
+
+load_dotenv(override=False)
 
 
 def load_config() -> dict:
