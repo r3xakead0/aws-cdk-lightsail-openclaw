@@ -1,67 +1,67 @@
 # AWS CDK Lightsail OpenClaw (Python + uv)
 
-Available language: Spanish in `README-ES.md`.
+Idioma disponible: ingles en `README.md`.
 
-Starter project to provision OpenClaw on AWS Lightsail using AWS CDK with Python and uv.
+Proyecto base para aprovisionar OpenClaw en AWS Lightsail usando AWS CDK con Python y uv.
 
-The stack uses the managed OpenClaw blueprint in Lightsail (recommended by AWS).
+El stack usa el blueprint administrado de OpenClaw en Lightsail (recomendado por AWS).
 
-## Requirements
+## Requisitos
 
 - Python 3.11+
 - uv
-- Node.js 22 LTS (required by CDK; version pinned in `.nvmrc`)
+- Node.js 22 LTS (requerido por CDK; version pinneada en `.nvmrc`)
 - AWS CLI v2
 - AWS CDK CLI (`npm install -g aws-cdk`)
 
-## Structure
+## Estructura
 
-- `app.py`: CDK entry point
-- `stacks/lightsail_openclaw_stack.py`: main stack
-- `config/dev.json` and `config/prod.json`: environment-specific infrastructure settings
-- `scripts/windows/dev/*.ps1` and `scripts/windows/prod/*.ps1`: environment wrappers for Windows PowerShell
-- `scripts/linux-mac/dev/*` and `scripts/linux-mac/prod/*`: environment wrappers for Linux/macOS
+- `app.py`: entrypoint CDK
+- `stacks/lightsail_openclaw_stack.py`: stack principal
+- `config/dev.json` y `config/prod.json`: parametros de infraestructura por ambiente
+- `scripts/windows/dev/*.ps1` y `scripts/windows/prod/*.ps1`: wrappers por ambiente para Windows PowerShell
+- `scripts/linux-mac/dev/*` y `scripts/linux-mac/prod/*`: wrappers por ambiente para Linux/macOS
 
-## Initial setup
+## Configuracion inicial
 
-1. Configure AWS credentials:
+1. Configura credenciales de AWS:
 
 ```bash
 aws configure
 aws sts get-caller-identity
 ```
 
-2. Edit `config/dev.json` and `config/prod.json` with real values for each environment:
+2. Edita `config/dev.json` y `config/prod.json` con valores reales segun el ambiente:
 
 - `account`
 - `region`
 - `availability_zone`
 - `key_pair_name`
-- `ssh_cidr` (recommended to restrict it; do not use `0.0.0.0/0` in production)
-- `enable_auto_snapshot` (`false` by default; enables daily snapshots when `true`)
-- `snapshot_time_of_day_utc` (only applies when `enable_auto_snapshot=true`)
-- Recommended `blueprint_id`: `openclaw_ls_1_0`
-- AWS-recommended `bundle_id`: `medium_3_0` (4 GB)
+- `ssh_cidr` (recomendado restringirlo, no usar `0.0.0.0/0` en produccion)
+- `enable_auto_snapshot` (`false` por defecto; habilita snapshots diarios si es `true`)
+- `snapshot_time_of_day_utc` (solo aplica cuando `enable_auto_snapshot=true`)
+- `blueprint_id` recomendado: `openclaw_ls_1_0`
+- `bundle_id` recomendado por AWS: `medium_3_0` (4 GB)
 
-You can list available blueprints in your region with:
+Puedes listar blueprints disponibles en tu region con:
 
 ```bash
 aws lightsail get-blueprints --query "blueprints[?contains(name, 'OpenClaw') || contains(blueprintId, 'openclaw')].[name,blueprintId,isActive,version]" --output table
 ```
 
-3. Install Python dependencies:
+3. Instala dependencias Python:
 
 ```bash
 uv sync
 ```
 
-4. Align Node.js version (if you use nvm):
+4. Alinea la version de Node.js (si usas nvm):
 
 ```bash
 nvm use
 ```
 
-5. CDK bootstrap (once per account/region):
+5. Bootstrapping de CDK (una vez por cuenta/region):
 
 Windows PowerShell (dev/prod):
 
@@ -77,40 +77,40 @@ Linux/macOS (dev/prod):
 ./scripts/linux-mac/prod/bootstrap <ACCOUNT_ID> <REGION>
 ```
 
-6. Set `OPENCLAW_CONFIG_PATH` if you want to pin the default environment:
+6. Configura `OPENCLAW_CONFIG_PATH` si quieres fijar el ambiente por defecto:
 
 ```bash
 cp .env.example .env
-# Example for prod
+# Ejemplo para prod
 # OPENCLAW_CONFIG_PATH=config/prod.json
 ```
 
-`app.py` loads `.env` automatically. If you run the wrappers (`scripts/.../dev/*` or `scripts/.../prod/*`), they override `OPENCLAW_CONFIG_PATH` based on the target environment.
+`app.py` carga `.env` automaticamente. Si ejecutas los wrappers (`scripts/.../dev/*` o `scripts/.../prod/*`), ellos sobreescriben `OPENCLAW_CONFIG_PATH` segun el ambiente.
 
-7. Recommended preflight before `deploy`:
+7. Preflight recomendado antes de `deploy`:
 
 ```bash
-# Verify current identity/account
+# Verifica identidad/cuenta actual
 aws sts get-caller-identity
 
-# Verify Lightsail key pairs (not EC2)
+# Verifica key pair en Lightsail (no EC2)
 aws lightsail get-key-pairs --region us-east-1 --query "keyPairs[?name=='openclaw-dev-key'].name" --output table
 aws lightsail get-key-pairs --region us-east-2 --query "keyPairs[?name=='openclaw-prod-key'].name" --output table
 ```
 
-## Generate and import SSH key (macOS/Windows)
+## Generar e importar clave SSH (macOS/Windows)
 
-This project uses `key_pair_name` to associate an SSH key pair with the Lightsail instance.
-The private key stays on your local machine and is never uploaded to the repository.
+Este proyecto usa `key_pair_name` para asociar una clave SSH a la instancia Lightsail.
+La clave privada se guarda en tu maquina local y no se sube al repositorio.
 
-Important notes:
+Notas importantes:
 
-- For `aws lightsail import-key-pair`, use an `ssh-rsa` public key.
-- If `key_pair_name` already exists, choose a different name and update `config/dev.json` or `config/prod.json`.
+- Para `aws lightsail import-key-pair`, usa clave publica tipo `ssh-rsa`.
+- Si `key_pair_name` ya existe, elige otro nombre y actualizalo en `config/dev.json` o `config/prod.json`.
 
 ### macOS
 
-1. Generate local RSA key:
+1. Genera la clave RSA local:
 
 Dev:
 ```bash
@@ -126,7 +126,7 @@ chmod 600 ~/.ssh/openclaw-prod-key
 chmod 644 ~/.ssh/openclaw-prod-key.pub
 ```
 
-2. Import the public key into Lightsail:
+2. Importa la clave publica a Lightsail:
 
 Dev:
 ```bash
@@ -144,7 +144,7 @@ aws lightsail import-key-pair \
   --region us-east-2
 ```
 
-3. Verify it exists:
+3. Verifica que exista:
 
 Dev:
 ```bash
@@ -158,7 +158,7 @@ aws lightsail get-key-pairs --region us-east-2 --query "keyPairs[?name=='opencla
 
 ### Windows PowerShell
 
-1. Generate local RSA key:
+1. Genera la clave RSA local:
 
 Dev:
 ```powershell
@@ -170,7 +170,7 @@ Prod:
 ssh-keygen -t rsa -b 4096 -m PEM -f "$HOME\.ssh\openclaw-prod-key" -C "openclaw-lightsail"
 ```
 
-2. Import the public key into Lightsail:
+2. Importa la clave publica a Lightsail:
 
 Dev:
 ```powershell
@@ -190,7 +190,7 @@ aws lightsail import-key-pair `
   --region us-east-2
 ```
 
-3. Verify it exists:
+3. Verifica que exista:
 
 Dev:
 ```powershell
@@ -202,33 +202,33 @@ Prod:
 aws lightsail get-key-pairs --region us-east-2 --query "keyPairs[?name=='openclaw-prod-key'].name" --output table
 ```
 
-### Connect over SSH after deploy
+### Conectar por SSH despues del deploy
 
-1. Ensure `config/dev.json` or `config/prod.json` has `key_pair_name` set to the same imported key name in the correct region.
-2. Deploy the infrastructure.
-3. Connect over SSH with your local private key.
+1. Asegura que `config/dev.json` o `config/prod.json` tenga `key_pair_name` con el mismo nombre importado en la region correcta.
+2. Despliega infraestructura.
+3. Conecta por SSH usando la clave privada local.
 
-Example (Linux/macOS):
+Ejemplo (Linux/macOS):
 
 ```bash
 ssh -i ~/.ssh/<key_pair_name> ubuntu@<PUBLIC_IP>
 ```
 
-Example (Windows PowerShell):
+Ejemplo (Windows PowerShell):
 
 ```powershell
 ssh -i "$HOME\.ssh\<key_pair_name>" ubuntu@<PUBLIC_IP>
 ```
 
-Do not commit private key files (`.pem`, `id_*`, `openclaw-dev-key`, `openclaw-prod-key`) to the repository.
+No subas archivos de clave privada (`.pem`, `id_*`, `openclaw-dev-key`, `openclaw-prod-key`) al repositorio.
 
-## Quick troubleshooting
+## Troubleshooting rapido
 
-- If `cdk deploy` fails and the stack ends in `ROLLBACK_COMPLETE`, delete the stack before retrying.
-- If you see `The KeyPair does not exist`, create/import the key pair in **Lightsail** (not EC2) and in the **same region** as your config.
-- If you see a Node version warning from CDK, run `nvm use` to switch to Node 22 LTS (`.nvmrc`).
+- Si `cdk deploy` falla y el stack queda en `ROLLBACK_COMPLETE`, borra el stack antes de reintentar.
+- Si aparece `The KeyPair does not exist`, crea o importa el key pair en **Lightsail** (no EC2) y en la **misma region** de tu config.
+- Si ves advertencia de Node no soportado por CDK, ejecuta `nvm use` para cambiar a Node 22 LTS (`.nvmrc`).
 
-## Usage
+## Uso
 
 ### Windows PowerShell
 
@@ -270,7 +270,7 @@ Prod:
 ./scripts/linux-mac/prod/destroy
 ```
 
-### Direct commands (any platform)
+### Comandos directos (cualquier plataforma)
 
 ```bash
 uv run cdk bootstrap aws://<ACCOUNT>/<REGION>
@@ -280,16 +280,16 @@ uv run cdk deploy --require-approval never
 uv run cdk destroy --force
 ```
 
-## What this stack provisions
+## Que aprovisiona este stack
 
-- Lightsail OpenClaw instance (managed blueprint by default)
-- Public ports 22/80/443 open
-- Static IP for a stable endpoint
-- Optional daily auto snapshots (`enable_auto_snapshot=true`)
-- IAM role so the OpenClaw instance can invoke Bedrock (no manual CloudShell step)
+- Instancia Lightsail OpenClaw (blueprint administrado por defecto)
+- Apertura de puertos publicos 22/80/443
+- Static IP para endpoint estable
+- Auto snapshots diarios opcionales (`enable_auto_snapshot=true`)
+- Rol IAM para que la instancia OpenClaw invoque Bedrock (sin paso manual en CloudShell)
 
-## Operational notes
+## Notas operativas
 
-- Initial access is completed through pairing in the Lightsail console (Getting started + web SSH).
-- Bedrock role setup runs automatically during `cdk deploy` and is removed during `cdk destroy`.
-- When attaching or changing a Static IP, browser/device re-pairing can be expected.
+- El acceso inicial se completa con pairing desde la consola de Lightsail (Getting started + SSH web).
+- La habilitacion del rol Bedrock se ejecuta automaticamente durante `cdk deploy` y se elimina durante `cdk destroy`.
+- Al adjuntar o cambiar Static IP, es normal tener que re-parear navegadores/dispositivos.
